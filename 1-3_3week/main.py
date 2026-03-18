@@ -42,7 +42,7 @@ except FileNotFoundError :
 except Exception as e :
     print(f"{e} -> 다른 문제가 생겼습니다")
 
-# print(mars_list)
+print(mars_list)
 
 
 # -----------------------------------------------
@@ -68,7 +68,7 @@ for i in flammability_sorted :
     if(float(i[4]) >= 0.7) :
         danger_flammability_list.append(i)
 
-# print(danger_flammability_list)
+print(danger_flammability_list)
 
 # -----------------------------------------------
 # 인화성 지수가 0.7 이상되는 목록을 csv 포멧 & 저장
