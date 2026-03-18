@@ -1,5 +1,6 @@
 import csv
 import os
+import pickle
 
 # os모듈의 사용처
 # -> 파일이나 디렉토리 조작이 가능
@@ -42,7 +43,6 @@ except FileNotFoundError :
 except Exception as e :
     print(f"{e} -> 다른 문제가 생겼습니다")
 
-
 # print(mars_list)
 
 
@@ -69,7 +69,7 @@ for i in flammability_sorted :
     if(float(i[4]) >= 0.7) :
         danger_flammability_list.append(i)
 
-print(danger_flammability_list)
+# print(danger_flammability_list)
 
 # -----------------------------------------------
 # 인화성 지수가 0.7 이상되는 목록을 csv 포멧 & 저장
@@ -89,6 +89,43 @@ try :
     with open(danger_flammability_csv_file_path, 'w', encoding='utf-8', newline='') as danger_flammability_file:
         writer = csv.writer(danger_flammability_file)
         writer.writerows(danger_flammability_list)
+
+except FileNotFoundError :
+    print("파일 경로 혹은 이름이 잘못되었습니다")
+
+except Exception as e :
+    print(f"{e} -> 다른 문제가 생겼습니다")
+
+
+
+# -----------------------------------------------
+# 보너스 과제 1
+# 인화성 순서대로 정렬된 내용을 이진 파일형태로 저장
+# 파일이름은 Mars_Base_Inventory_List.bin
+# -----------------------------------------------
+
+danger_flammability_binfile_path = os.path.join(current_dir, 'Mars_Base_Inventory_List.bin')
+
+try :
+    with open(danger_flammability_binfile_path, 'wb') as danger_flammability_binfile:
+        pickle.dump(danger_flammability_list, danger_flammability_binfile)
+
+except FileNotFoundError :
+    print("파일 경로 혹은 이름이 잘못되었습니다")
+
+except Exception as e :
+    print(f"{e} -> 다른 문제가 생겼습니다")
+
+
+# -----------------------------------------------
+# 보너스 과제 2
+# 저장된 Mars_Base_Inventory_List.bin를 읽어 화면에 출력
+# -----------------------------------------------
+
+try :
+    with open(danger_flammability_binfile_path, 'rb') as danger_flammability_binfile:
+        danger_flammability_binfile_data = pickle.load(danger_flammability_binfile)
+        print(danger_flammability_binfile_data)
 
 except FileNotFoundError :
     print("파일 경로 혹은 이름이 잘못되었습니다")
