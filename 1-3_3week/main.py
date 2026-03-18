@@ -26,13 +26,22 @@ csv_file_path = os.path.join(current_dir, 'Mars_Base_Inventory_List.csv')
 
 # csv파일을 읽어서 출력을 하려면 reader라는 전용함수를 사용해 깔끔하게 리스트 형태로 뽑아내야 함
 
-with open(csv_file_path, 'r', encoding='utf-8') as c_file_path:
-    reader = csv.reader(c_file_path)
-    # read = csv.read(c_file_path)
-    # -> 이때 csv파일을 read로 읽어올 때는 AttributeError라는 에러가 생김
-    print(reader)
-    # <_csv.reader object at 0x02351WCEW7GW254>
-    mars_list = list(reader)
+mars_list = []
+
+try :
+    with open(csv_file_path, 'r', encoding='utf-8') as c_file_path:
+        reader = csv.reader(c_file_path)
+        # read = csv.read(c_file_path)
+        # -> 이때 csv파일을 read로 읽어올 때는 AttributeError라는 에러가 생김
+        print(reader)
+        # <_csv.reader object at 0x02351WCEW7GW254>
+        mars_list = list(reader)
+except FileNotFoundError :
+    print("파일 경로 혹은 이름이 잘못되었습니다")
+
+except Exception as e :
+    print(f"{e} -> 다른 문제가 생겼습니다")
+
 
 # print(mars_list)
 
@@ -69,10 +78,20 @@ print(danger_flammability_list)
 
 danger_flammability_csv_file_path = os.path.join(current_dir, 'Mars_Base_Inventory_danger.csv')
 
+try :
+    # danger_flammability_file = open(danger_flammability_csv_file_path, 'w', encoding='utf-8', newline='')
 
-danger_flammability_file = open(danger_flammability_csv_file_path, 'w', encoding='utf-8', newline='')
+    # writer = csv.writer(danger_flammability_file)
+    # writer.writerows(danger_flammability_list)
 
-writer = csv.writer(danger_flammability_file)
-writer.writerows(danger_flammability_list)
+    # danger_flammability_file.close()
 
-danger_flammability_file.close()
+    with open(danger_flammability_csv_file_path, 'w', encoding='utf-8', newline='') as danger_flammability_file:
+        writer = csv.writer(danger_flammability_file)
+        writer.writerows(danger_flammability_list)
+
+except FileNotFoundError :
+    print("파일 경로 혹은 이름이 잘못되었습니다")
+
+except Exception as e :
+    print(f"{e} -> 다른 문제가 생겼습니다")
