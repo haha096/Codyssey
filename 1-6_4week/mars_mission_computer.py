@@ -37,12 +37,32 @@ class DummySensor:
             f'{self.env_values["mars_base_internal_co2"]}, '
             f'{self.env_values["mars_base_internal_oxygen"]}\n'
         )
+        header = (
+            'datetime, '
+            'mars_base_internal_temperature, '
+            'mars_base_external_temperature, '
+            'mars_base_internal_humidity, '
+            'mars_base_external_illuminance, '
+            'mars_base_internal_co2, '
+            'mars_base_internal_oxygen\n'
+        )
+
+        # 파일이 없으면 헤더 먼저 쓰고, 있으면 바로 로그 추가
         with open('mars_mission_log.log', 'a') as f:
+            if f.tell() == 0:
+                f.write(header)
             f.write(log)
+    
+        with open('mars_mission_log.csv', 'a') as f:
+            if f.tell() == 0:
+                f.write(header)
+            f.write(log)
+        
         return self.env_values
 
 
 ds = DummySensor()
-ds.set_env()
+# ds.set_env()
+# 이 문장 안 할 시 0.0만 나옴
 print(ds.set_env())
 print(ds.get_env())
