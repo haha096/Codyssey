@@ -1,3 +1,50 @@
 datetime의 라이브러리 사용처
 -> 운영체제에서 날짜와 시간을 가져오려면 라이브러리는 필수
 -> 이에 datetime의 라이브러리를 사용함
+
+================================================================
+
+클래스 초기화
+class DummySensor:
+    def __init__(self):
+        self.env_values = { ... }
+
+-> __init__은 인스턴스가 만들어질 때 자동으로 실행되는 초기화 메소드
+-> env_values 딕셔너리에 센서 항목 6가지를 0.0으로 초기화
+
+================================================================
+
+set_env() - 센서 값 설정
+def set_env(self):
+    self.env_values['mars_base_internal_temperature'] = round(random.uniform(18, 30), 1)
+    ...
+-> random.uniform(a, b)로 a~b 사이의 실수 랜덤 값을 생성
+-> round(값, 자릿수)로 소수점 자리를 정리
+
+================================================================
+
+get_env() - 값 반환
+def get_env(self):
+    ...
+    return self.env_values
+-> set_env()로 채워진 env_values 딕셔너리를 반환
+
+================================================================
+
+get_env() - 로그 저장 (보너스 과제)
+now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+log = f'{now}, {self.env_values["mars_base_internal_temperature"]}, ...'
+
+-> datetime.datetime.now()로 현재 시각을 가져오고
+   strftime('%Y-%m-%d %H:%M:%S')로 2025-03-31 12:00:00 형식으로 변환
+
+================================================================
+
+for filename in ['1-6_4week/mars_mission_log.log', '1-6_4week/mars_mission_log.csv']:
+    with open(filename, 'a') as f:
+        if f.tell() == 0:
+            f.write(header)
+        f.write(log)
+ -> 'a' 모드는 파일이 없으면 새로 만들고, 있으면 이어서 추가
+ -> f.tell() == 0은 파일 커서가 맨 앞(= 빈 파일)일 때를 의미
+ -> 처음 생성 시에만 헤더(컬럼명)를 먼저 작성하고, 이후엔 로그만 추가
