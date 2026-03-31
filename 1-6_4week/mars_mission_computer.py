@@ -1,6 +1,7 @@
 import random
 import datetime
 
+
 class DummySensor:
     def __init__(self):
         self.env_values = {
@@ -17,7 +18,7 @@ class DummySensor:
         self.env_values['mars_base_external_temperature'] = round(random.uniform(0, 21), 1)
         self.env_values['mars_base_internal_humidity'] = round(random.uniform(50, 60), 1)
         self.env_values['mars_base_external_illuminance'] = round(random.uniform(500, 715), 1)
-        self.env_values['mars_base_internal_co2'] = round(random.uniform(0.02, 0.1), 1)
+        self.env_values['mars_base_internal_co2'] = round(random.uniform(0.02, 0.1), 2)
         self.env_values['mars_base_internal_oxygen'] = round(random.uniform(4, 7), 1)
 
     # -----------------------------------------------
@@ -47,22 +48,19 @@ class DummySensor:
             'mars_base_internal_oxygen\n'
         )
 
-        # 파일이 없으면 헤더 먼저 쓰고, 있으면 바로 로그 추가
-        with open('mars_mission_log.log', 'a') as f:
-            if f.tell() == 0:
-                f.write(header)
-            f.write(log)
-    
-        with open('mars_mission_log.csv', 'a') as f:
-            if f.tell() == 0:
-                f.write(header)
-            f.write(log)
-        
+        for filename in ['1-6_4week/mars_mission_log.log', '1-6_4week/mars_mission_log.csv']:
+            # 파일이 없으면 헤더 먼저 쓰고, 있으면 바로 로그 추가
+            with open(filename, 'a') as f:
+                if f.tell() == 0:
+                    f.write(header)
+                f.write(log)
+
         return self.env_values
 
 
 ds = DummySensor()
 # ds.set_env()
 # 이 문장 안 할 시 0.0만 나옴
-print(ds.set_env())
+# set_env()로 센서 값을 설정한 뒤 get_env()로 값을 확인한다
+ds.set_env()
 print(ds.get_env())
