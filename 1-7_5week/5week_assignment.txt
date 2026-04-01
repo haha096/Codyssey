@@ -1,0 +1,69 @@
+self._sum_values = {key: 0.0 for key in self.env_values}
+self._count = 0
+self._last_avg_time = None
+
+-> 5분 평균을 내기 위한 계산 준비
+
+***
+_sum_values = 지금까지의 누적 합계
+_count = 몇 번 더했는지 횟수
+_last_avg_time = 마지막으로 평균을 출력한 시각
+***
+
+
+
+def _update_env_values(self, sensor_data):
+    for key in self.env_values:
+        if key in sensor_data and sensor_data[key] is not None:
+            self.env_values[key] = sensor_data[key]
+            self._sum_values[key] += sensor_data[key]
+    self._count += 1
+
+-> 센서가 보내온 데이터 업데이트 하는 메소드
+
+
+
+
+def _print_average(self):
+    avg = {
+        key: round(self._sum_values[key] / self._count, 2)
+        for key in self._sum_values
+    }
+
+-> 5분 동안 쌓아둔 센서 데이터들의 평균을 계산하고 출력하는 메소드
+
+
+
+
+
+def _reset_average(self):
+    self._sum_values = {key: 0.0 for key in self.env_values}
+    self._count = 0
+-> 평균 출력 후 다음 5분동안의 데이터를 모으기 시작
+
+
+
+
+** 핵심 부분 **
+sensor_data = self.ds.get_env_data()
+self._update_env_values(sensor_data)
+print(dict_to_json_str(self.env_values))
+
+-> json에서 언은 데이터를 얻고 저장 및 출력하는
+
+if time.time() - self._last_avg_time >= AVERAGE_INTERVAL:
+-> 300초(5분)을 넘으면 평균을 출력하고 타이머 리셋
+
+
+user_input = input("▶ ").strip().lower()
+if user_input == "q":
+    print("System stopped....")
+    break
+
+-> 매 사이클마다 사용자에게 사이클을 이어할 건지 input으로 물어봄
+-> q를 입력하면 루프를 탈출하고 종료 메세지를 출력
+
+
+전체 흐름)
+켜기 → JSON 읽기 → 화면 출력 → 5분 됐으면 평균 출력
+     → 키 입력 대기 → q면 종료, Enter면 5초 쉬고 다시 처음으로
