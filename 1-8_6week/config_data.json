@@ -1,0 +1,11 @@
+{
+    "system_labels": {
+        "os": "운영체계",
+        "os_version": "운영체계 버전",
+        "cpu_type": "CPU의 타입",
+        "cpu_cores": "CPU의 코어 수",
+        "memory_size": "메모리의 크기",
+        "cpu_load": "CPU 실시간 사용량",
+        "memory_load": "메모리 실시간 사용량"
+    }
+}
