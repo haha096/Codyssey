@@ -1,0 +1,221 @@
+# pip install PyQt5
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QGridLayout,
+    QPushButton,
+    QLabel,
+)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
+
+
+STYLE_OPERATOR = '''
+    QPushButton {
+        background-color: #ff9f0a;
+        color: white;
+        border-radius: 35px;
+        border: none;
+        font-size: 28px;
+    }
+    QPushButton:pressed {
+        background-color: #ffcc7a;
+    }
+'''
+
+STYLE_FUNCTION = '''
+    QPushButton {
+        background-color: #a5a5a5;
+        color: black;
+        border-radius: 35px;
+        border: none;
+        font-size: 20px;
+    }
+    QPushButton:pressed {
+        background-color: #d4d4d4;
+    }
+'''
+
+STYLE_NUMBER = '''
+    QPushButton {
+        background-color: #333333;
+        color: white;
+        border-radius: 35px;
+        border: none;
+        font-size: 24px;
+    }
+    QPushButton:pressed {
+        background-color: #737373;
+    }
+'''
+
+STYLE_ZERO = '''
+    QPushButton {
+        background-color: #333333;
+        color: white;
+        border-radius: 35px;
+        border: none;
+        font-size: 24px;
+        text-align: left;
+        padding-left: 28px;
+    }
+    QPushButton:pressed {
+        background-color: #737373;
+    }
+'''
+
+
+class Calculator(QWidget):
+    """아이폰 스타일 계산기 UI 위젯."""
+
+    # 객체가 생성될 때 한 번 자동으로 실행되는 초기화 메소드
+    def __init__(self):
+        super().__init__()
+        self.display_text = '0'
+        # [보너스] 4칙 연산 상태 관리 변수 초기화
+        self.first_number = 0.0      # 첫 번째 피연산자
+        self.operator = None         # 현재 선택된 연산자
+        self.waiting_second = False  # 두 번째 수 입력 대기 상태
+        self._init_ui()
+
+    def _init_ui(self):
+        """UI 초기화: 디스플레이와 버튼 배치를 설정한다."""
+        self.setWindowTitle('Calculator')
+        self.setFixedSize(340, 580)
+        self.setStyleSheet('background-color: #1c1c1e;')
+
+        main_layout = QVBoxLayout()
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(12, 20, 12, 12)
+
+        self.display = QLabel('0')
+        self.display.setAlignment(Qt.AlignRight | Qt.AlignBottom)
+        self.display.setFont(QFont('Arial', 64, QFont.Light))
+        self.display.setStyleSheet('color: white; padding-right: 8px;')
+        self.display.setFixedHeight(160)
+        main_layout.addWidget(self.display)
+
+        grid = QGridLayout()
+        grid.setSpacing(12)
+
+        button_data = [
+            ('AC',  0, 0, 1, STYLE_FUNCTION),
+            ('+/-', 0, 1, 1, STYLE_FUNCTION),
+            ('%',   0, 2, 1, STYLE_FUNCTION),
+            ('÷',   0, 3, 1, STYLE_OPERATOR),
+            ('7',   1, 0, 1, STYLE_NUMBER),
+            ('8',   1, 1, 1, STYLE_NUMBER),
+            ('9',   1, 2, 1, STYLE_NUMBER),
+            ('×',   1, 3, 1, STYLE_OPERATOR),
+            ('4',   2, 0, 1, STYLE_NUMBER),
+            ('5',   2, 1, 1, STYLE_NUMBER),
+            ('6',   2, 2, 1, STYLE_NUMBER),
+            ('-',   2, 3, 1, STYLE_OPERATOR),
+            ('1',   3, 0, 1, STYLE_NUMBER),
+            ('2',   3, 1, 1, STYLE_NUMBER),
+            ('3',   3, 2, 1, STYLE_NUMBER),
+            ('+',   3, 3, 1, STYLE_OPERATOR),
+            ('0',   4, 0, 2, STYLE_ZERO),
+            ('.',   4, 2, 1, STYLE_NUMBER),
+            ('=',   4, 3, 1, STYLE_OPERATOR),
+        ]
+
+        for label, row, col, colspan, style in button_data:
+            btn = QPushButton(label)
+            btn.setFixedHeight(70)
+            btn.setStyleSheet(style)
+
+            if colspan == 2:
+                btn.setFixedWidth(152)
+                grid.addWidget(btn, row, col, 1, colspan)
+            else:
+                grid.addWidget(btn, row, col)
+
+            btn.clicked.connect(
+                lambda checked, text=label: self._on_button_clicked(text)
+            )
+
+        main_layout.addLayout(grid)
+        self.setLayout(main_layout)
+
+    def _on_button_clicked(self, text):
+        """버튼 클릭 이벤트를 처리하고 디스플레이를 갱신한다."""
+        if text == 'AC':
+            # [보너스] AC 클릭 시 연산 상태도 함께 초기화
+            self.display_text = '0'
+            self.first_number = 0.0
+            self.operator = None
+            self.waiting_second = False
+
+        elif text == '+/-':
+            if self.display_text != '0':
+                if self.display_text.startswith('-'):
+                    self.display_text = self.display_text[1:]
+                else:
+                    self.display_text = '-' + self.display_text
+
+        elif text == '%':
+            # [보너스] % 클릭 시 현재 숫자를 100으로 나눠 퍼센트 변환
+            value = float(self.display_text) / 100
+            self.display_text = self._format(value)
+
+        elif text in ('÷', '×', '-', '+'):
+            # [보너스] 연산자 클릭 시 첫 번째 수와 연산자를 저장하고 대기 상태로 전환
+            self.first_number = float(self.display_text)
+            self.operator = text
+            self.waiting_second = True
+
+        elif text == '=':
+            # [보너스] = 클릭 시 저장된 첫 번째 수, 연산자, 현재 수로 계산 실행
+            if self.operator is not None:
+                second_number = float(self.display_text)
+                result = self._calculate(self.first_number, self.operator, second_number)
+                self.display_text = self._format(result)
+                self.operator = None
+                self.waiting_second = False
+
+        elif text == '.':
+            if self.waiting_second:
+                self.display_text = '0.'
+                self.waiting_second = False
+            elif '.' not in self.display_text:
+                self.display_text += '.'
+
+        else:
+            # [보너스] 연산자 입력 후 첫 숫자 클릭이면 디스플레이를 새 숫자로 교체
+            if self.display_text == '0' or self.waiting_second:
+                self.display_text = text
+                self.waiting_second = False
+            else:
+                self.display_text += text
+
+        self.display.setText(self.display_text)
+
+    def _calculate(self, a, operator, b):
+        """[보너스] 두 수와 연산자를 받아 4칙 연산 결과를 반환한다."""
+        if operator == '+':
+            return a + b
+        elif operator == '-':
+            return a - b
+        elif operator == '×':
+            return a * b
+        elif operator == '÷':
+            # [보너스] 0으로 나누는 경우 예외 처리
+            if b == 0:
+                return 0.0
+            return a / b
+        return 0.0
+
+    def _format(self, value):
+        """[보너스] 숫자를 디스플레이용 문자열로 변환한다. 정수면 소수점을 제거한다."""
+        if value == int(value):
+            return str(int(value))
+        return str(value)
+
+
+if __name__ == '__main__':
+    app = QApplication([])
+    calc = Calculator()
+    calc.show()
+    app.exec_()
