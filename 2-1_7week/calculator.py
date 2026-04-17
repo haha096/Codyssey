@@ -73,7 +73,7 @@ class Calculator(QWidget):
     def __init__(self):
         super().__init__()
         self.display_text = '0'
-        # [보너스] 4칙 연산 상태 관리 변수 초기화
+        # 4칙 연산 상태 관리 변수 초기화
         self.first_number = 0.0      # 첫 번째 피연산자
         self.operator = None         # 현재 선택된 연산자
         self.waiting_second = False  # 두 번째 수 입력 대기 상태
@@ -81,21 +81,22 @@ class Calculator(QWidget):
 
     def _init_ui(self):
         """UI 초기화: 디스플레이와 버튼 배치를 설정한다."""
-        self.setWindowTitle('Calculator')
-        self.setFixedSize(340, 580)
-        self.setStyleSheet('background-color: #1c1c1e;')
+        self.setWindowTitle('Calculator') # 창 제목
+        self.setFixedSize(340, 580)       # 창 크기 고정
+        self.setStyleSheet('background-color: #1c1c1e;') # 배경은 어두운 색으로
 
-        main_layout = QVBoxLayout()
-        main_layout.setSpacing(0)
-        main_layout.setContentsMargins(12, 20, 12, 12)
+        main_layout = QVBoxLayout() # 세로 방향으로 쌓는 레이아웃
+        main_layout.setSpacing(0)   # 위젯 사이 간격 0
+        main_layout.setContentsMargins(12, 20, 12, 12) # 바깥 여백 (좌, 상, 우, 하)
 
-        self.display = QLabel('0')
-        self.display.setAlignment(Qt.AlignRight | Qt.AlignBottom)
-        self.display.setFont(QFont('Arial', 64, QFont.Light))
+        self.display = QLabel('0') # 숫자를 보여주는 텍스트 라벨
+        self.display.setAlignment(Qt.AlignRight | Qt.AlignBottom) # 오른쪽 아래 정렬
+        self.display.setFont(QFont('Arial', 64, QFont.Light))     # 폰트, 크기, 굵기
         self.display.setStyleSheet('color: white; padding-right: 8px;')
-        self.display.setFixedHeight(160)
-        main_layout.addWidget(self.display)
+        self.display.setFixedHeight(160)    # 디스플레이 높이 고정
+        main_layout.addWidget(self.display) # 레이아웃에 디스플레이 추가
 
+        # ------------------ 버튼 UI ------------------
         grid = QGridLayout()
         grid.setSpacing(12)
 
@@ -138,37 +139,48 @@ class Calculator(QWidget):
 
         main_layout.addLayout(grid)
         self.setLayout(main_layout)
+        # ------------------ 버튼 UI ------------------
 
     def _on_button_clicked(self, text):
         """버튼 클릭 이벤트를 처리하고 디스플레이를 갱신한다."""
+        # 누른 버튼을 text라는 변수에 저장
         if text == 'AC':
-            # [보너스] AC 클릭 시 연산 상태도 함께 초기화
+            # AC 클릭 시 연산 상태도 함께 초기화
             self.display_text = '0'
             self.first_number = 0.0
             self.operator = None
             self.waiting_second = False
 
+        # 부호반전
+        # text변수가 0이 아닐 때와 -일 때를 조건으로 삼아
+        # 현재 수의 부호를 반전
         elif text == '+/-':
             if self.display_text != '0':
                 if self.display_text.startswith('-'):
+                    # '-' 제거
                     self.display_text = self.display_text[1:]
                 else:
+                    # '-' 추가
                     self.display_text = '-' + self.display_text
 
+        # 퍼센트 변환
+        # 50%로 누르면 0.5가 됨
         elif text == '%':
-            # [보너스] % 클릭 시 현재 숫자를 100으로 나눠 퍼센트 변환
+            # % 클릭 시 현재 숫자를 100으로 나눠 퍼센트 변환
             value = float(self.display_text) / 100
             self.display_text = self._format(value)
 
+        # 연산자 - 첫번째 수 저장
         elif text in ('÷', '×', '-', '+'):
-            # [보너스] 연산자 클릭 시 첫 번째 수와 연산자를 저장하고 대기 상태로 전환
+            # 연산자 클릭 시 첫 번째 수와 연산자를 저장하고 대기 상태로 전환
             self.first_number = float(self.display_text)
             self.operator = text
             self.waiting_second = True
 
+        # 계산실행
         elif text == '=':
-            # [보너스] = 클릭 시 저장된 첫 번째 수, 연산자, 현재 수로 계산 실행
-            if self.operator is not None:
+            # = 클릭 시 저장된 첫 번째 수, 연산자, 현재 수로 계산 실행
+            if self.operator is not None: # 연산자가 있을 때만 계산
                 second_number = float(self.display_text)
                 result = self._calculate(self.first_number, self.operator, second_number)
                 self.display_text = self._format(result)
@@ -182,8 +194,22 @@ class Calculator(QWidget):
             elif '.' not in self.display_text:
                 self.display_text += '.'
 
+        # 흐름을 전체적으로 보면
+        # 3을 입력
+        # first_number = 0.0 | operator = None | display_text = '3'
+
+        # +를 입력
+        # first_number = 3.0 | operator = '+' | display_text = '3'
+
+        # 5를 입력
+        # first_number = 3.0 | operator = None | display_text = '5'
+
+        # =을 입력
+        # first_number = 0.0 | operator = None | display_text = '8'
+
+
         else:
-            # [보너스] 연산자 입력 후 첫 숫자 클릭이면 디스플레이를 새 숫자로 교체
+            # 연산자 입력 후 첫 숫자 클릭이면 디스플레이를 새 숫자로 교체
             if self.display_text == '0' or self.waiting_second:
                 self.display_text = text
                 self.waiting_second = False
@@ -193,7 +219,7 @@ class Calculator(QWidget):
         self.display.setText(self.display_text)
 
     def _calculate(self, a, operator, b):
-        """[보너스] 두 수와 연산자를 받아 4칙 연산 결과를 반환한다."""
+        """두 수와 연산자를 받아 4칙 연산 결과를 반환한다."""
         if operator == '+':
             return a + b
         elif operator == '-':
@@ -201,14 +227,14 @@ class Calculator(QWidget):
         elif operator == '×':
             return a * b
         elif operator == '÷':
-            # [보너스] 0으로 나누는 경우 예외 처리
+            # 0으로 나누는 경우 예외 처리
             if b == 0:
                 return 0.0
             return a / b
         return 0.0
 
     def _format(self, value):
-        """[보너스] 숫자를 디스플레이용 문자열로 변환한다. 정수면 소수점을 제거한다."""
+        """숫자를 디스플레이용 문자열로 변환한다. 정수면 소수점을 제거한다."""
         if value == int(value):
             return str(int(value))
         return str(value)
