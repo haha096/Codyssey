@@ -8,7 +8,6 @@ door_hacking.py
 
 알고리즘:
   [기본]  itertools.product로 모든 조합을 순서대로 생성하여 완전 탐색.
-          ZipCrypto 헤더(12바이트)만 먼저 검사해 전체 압축 해제 횟수를 줄임.
   [보너스] 탐색 공간을 CPU 코어 수만큼 분할하여 multiprocessing으로 병렬 탐색.
 
 제약사항 준수:
@@ -31,18 +30,14 @@ import multiprocessing
 import os
 
 # string: 문자셋을 하드코딩 없이 안전하게 정의
-# string.digits      → '0123456789'
+# string.digits          → '0123456789'
 # string.ascii_lowercase → 'abcdefghijklmnopqrstuvwxyz'
 import string
-
-# struct: zip 로컬 파일 헤더를 직접 파싱하기 위해 사용
-# (파일명 길이, 추가 필드 길이를 이진 데이터에서 읽어 암호화 헤더 위치 계산)
-import struct
 
 # time: 과제 요구사항인 시작 시간·반복 횟수·경과 시간 출력에 사용
 import time
 
-# zipfile: zip 파일 읽기 및 ZipCrypto 복호화기(_ZipDecrypter) 사용
+# zipfile: zip 파일 읽기 및 암호 검증에 사용
 # → 제약사항에서 "zip 파일 다루는 부분은 외부 라이브러리 사용 가능"으로 명시 허용
 import zipfile
 
@@ -74,61 +69,49 @@ LOG_INTERVAL = 500_000
 
 
 # ---------------------------------------------------------------------------
-# 내부 유틸리티: ZipCrypto 헤더 검사 (핵심 최적화)
+# 공통 유틸리티
 # ---------------------------------------------------------------------------
 
-def _check_password_fast(zf, zinfo, pwd_bytes):
+def _try_password(zf, filename, pwd_bytes):
     """
-    ZipCrypto 암호화 헤더(12바이트)만 복호화하여 암호 일치 여부를 빠르게 확인한다.
-
-    [왜 이 방법이 빠른가?]
-      기존 방식: 암호 시도 → 파일 전체 압축 해제 → 성공/실패 판단  (느림)
-      이 방식  : 암호 시도 → 헤더 12바이트만 복호화 → 1바이트 비교  (10~30배 빠름)
-
-    [ZipCrypto 헤더 검사 원리]
-      ZipCrypto 규격에 따라 암호화 헤더의 마지막 바이트(12번째)는
-      반드시 해당 파일의 CRC-32 최상위 1바이트와 일치해야 한다.
-      이 조건을 만족하지 않으면 틀린 암호이므로 즉시 skip할 수 있다.
-      (256분의 1 확률로 오탐 발생 → 최종 확인 단계에서 걸러냄)
-
-    [zip 로컬 헤더 구조 (ZIP 표준 규격)]
-      오프셋 0  ~ 3  : 시그니처 (PK\x03\x04)
-      오프셋 26 ~ 27 : 파일명 길이 (2바이트, little-endian)
-      오프셋 28 ~ 29 : 추가 필드 길이 (2바이트, little-endian)
-      오프셋 30 + 파일명 길이 + 추가 필드 길이: 실제 데이터 시작
-      → 데이터 첫 12바이트가 ZipCrypto 암호화 헤더
+    zip 파일에서 주어진 암호로 파일 읽기를 시도한다.
 
     Args:
         zf (zipfile.ZipFile): 열린 ZipFile 객체.
-        zinfo (zipfile.ZipInfo): 검사할 파일의 메타데이터.
+        filename (str): zip 안의 파일명.
         pwd_bytes (bytes): 시도할 암호 (bytes).
 
     Returns:
-        bool: 암호가 헤더 검사를 통과하면 True, 아니면 False.
+        bool: 암호 일치 시 True, 불일치 시 False.
     """
-    fp = zf.fp  # zip 파일의 실제 파일 포인터
+    try:
+        zf.read(filename, pwd=pwd_bytes)
+        return True
+    except (RuntimeError, zlib.error, zipfile.BadZipFile):
+        # RuntimeError      : Python 3.12 이하에서 틀린 암호 시 발생
+        # zlib.error        : Python 3.13+에서 추가로 발생
+        # zipfile.BadZipFile: Python 3.14에서 추가로 발생
+        # → 모두 "틀린 암호"를 의미하므로 False 반환
+        return False
 
-    # zip 로컬 헤더 30바이트 읽기
-    fp.seek(zinfo.header_offset)
-    fheader = fp.read(30)
 
-    # 파일명 길이와 추가 필드 길이를 little-endian 2바이트 정수로 파싱
-    fname_len = struct.unpack_from('<H', fheader, 26)[0]
-    extra_len = struct.unpack_from('<H', fheader, 28)[0]
+def _save_password(password, password_file):
+    """
+    발견된 암호를 텍스트 파일로 저장한다.
 
-    # 암호화 헤더 시작 위치로 이동 후 12바이트 읽기
-    fp.seek(zinfo.header_offset + 30 + fname_len + extra_len)
-    enc_header = fp.read(12)
+    OSError(권한 없음, 디스크 꽉 참 등) 발생 시 예외처리하여
+    프로그램이 비정상 종료되지 않도록 보호한다.
 
-    # zipfile 내부 ZipCrypto 복호화기로 헤더 복호화
-    # _ZipDecrypter(pwd_bytes): 키 초기화 후 1바이트씩 복호화하는 callable 반환
-    decrypter = zipfile._ZipDecrypter(pwd_bytes)
-    decrypted = bytes(decrypter(b) for b in enc_header)
-
-    # CRC-32 상위 1바이트와 복호화된 헤더 마지막 바이트 비교
-    # (zinfo.CRC >> 24) & 0xff : CRC-32의 최상위 8비트 추출
-    check_byte = (zinfo.CRC >> 24) & 0xff
-    return decrypted[11] == check_byte
+    Args:
+        password (str): 저장할 암호 문자열.
+        password_file (str): 저장 경로.
+    """
+    try:
+        with open(password_file, 'w', encoding='utf-8') as f:
+            f.write(password)
+        print(f'[+] 암호 저장    : {password_file}')
+    except OSError as e:
+        print(f'[-] 저장 실패    : {e}')
 
 
 # ---------------------------------------------------------------------------
@@ -160,13 +143,12 @@ def unlock_zip(zip_path=ZIP_PATH, password_file=PASSWORD_FILE):
     print('-' * 60)
 
     try:
-        # 파일 존재 여부 및 zip 유효성 검사 (FileNotFoundError, BadZipFile 대비)
         with zipfile.ZipFile(zip_path, 'r') as zf:
-            zinfo = zf.infolist()[0]  # 암호 검증에 사용할 첫 번째 파일의 메타데이터
+            filename = zf.namelist()[0]  # 암호 검증에 사용할 zip 내부 파일명
             count = 0  # 총 시도 횟수 카운터
 
             # itertools.product: 중첩 for문 없이 6자리 모든 조합을 사전식으로 생성
-            # 예: product('01..z', repeat=6) → ('0','0','0','0','0','0'), ('0','0','0','0','0','1'), ...
+            # 예: product('01..z', repeat=6) → ('0','0','0','0','0','0'), ...
             for combo in itertools.product(CHARSET, repeat=PASSWORD_LENGTH):
                 password = ''.join(combo)  # 튜플 → 문자열 변환 ('a','b','c') → 'abc'
                 count += 1
@@ -183,16 +165,8 @@ def unlock_zip(zip_path=ZIP_PATH, password_file=PASSWORD_FILE):
                         f'현재: {password}'
                     )
 
-                # [1단계] 헤더 검사: 12바이트만 복호화해 빠르게 필터링
-                # → 약 255/256 확률로 여기서 탈락, 전체 압축 해제 생략
-                if not _check_password_fast(zf, zinfo, password.encode()):
-                    continue  # 헤더 불일치 → 즉시 다음 조합으로
-
-                # [2단계] 전체 파일 복호화: 헤더 통과 시 오탐(false positive) 제거
-                # 약 1/256 확률로 헤더를 통과한 틀린 암호를 최종 걸러냄
-                try:
-                    zf.read(zinfo.filename, pwd=password.encode())
-                    # read() 성공 = 암호 일치 확정
+                # 암호 시도: 성공하면 저장 후 반환
+                if _try_password(zf, filename, password.encode()):
                     elapsed = time.time() - start_ts
                     print(f'\n[+] 암호 발견    : {password}')
                     print(f'[+] 총 시도 횟수 : {count:,}')
@@ -200,15 +174,7 @@ def unlock_zip(zip_path=ZIP_PATH, password_file=PASSWORD_FILE):
                     _save_password(password, password_file)
                     return password
 
-                except (RuntimeError, zlib.error, zipfile.BadZipFile):
-                    # RuntimeError   : Python 3.12 이하에서 틀린 암호 시 발생
-                    # zlib.error     : Python 3.13+에서 추가로 발생
-                    # zipfile.BadZipFile: Python 3.14에서 추가로 발생
-                    # → 모두 "틀린 암호"를 의미하므로 다음 시도로 계속
-                    pass
-
     except FileNotFoundError:
-        # zip 파일 자체가 없는 경우
         print(f'[-] 파일을 찾을 수 없습니다: {zip_path}')
         return None
 
@@ -219,7 +185,7 @@ def unlock_zip(zip_path=ZIP_PATH, password_file=PASSWORD_FILE):
 
 
 # ---------------------------------------------------------------------------
-# 보너스 과제: unlock_zip_fast (멀티프로세싱 + 헤더 검사)
+# 보너스 과제: unlock_zip_fast (멀티프로세싱으로 탐색 공간 병렬 분할)
 # ---------------------------------------------------------------------------
 
 def _worker(first_chars, zip_path, result_queue):
@@ -228,7 +194,7 @@ def _worker(first_chars, zip_path, result_queue):
 
     [분할 방식]
       CHARSET 첫 번째 문자(36개)를 코어 수(N)로 나누어 각 프로세스에 할당.
-      예) 4코어: 프로세스0 → '0','a','i','q',...  프로세스1 → '1','b','j','r',...
+      예) 4코어: 프로세스0 → '0','4','8','c',...  프로세스1 → '1','5','9','d',...
       나머지 5자리는 각 프로세스가 독립적으로 완전 탐색.
 
     Args:
@@ -238,37 +204,26 @@ def _worker(first_chars, zip_path, result_queue):
     """
     try:
         with zipfile.ZipFile(zip_path, 'r') as zf:
-            zinfo = zf.infolist()[0]
+            filename = zf.namelist()[0]
             for first in first_chars:
                 # 나머지 5자리(PASSWORD_LENGTH - 1)의 모든 조합 탐색
                 for tail in itertools.product(CHARSET, repeat=PASSWORD_LENGTH - 1):
                     password = first + ''.join(tail)
-                    pwd_bytes = password.encode()
-
-                    # [1단계] 헤더 빠른 검사
-                    if not _check_password_fast(zf, zinfo, pwd_bytes):
-                        continue
-
-                    # [2단계] 전체 파일로 최종 확인
-                    try:
-                        zf.read(zinfo.filename, pwd=pwd_bytes)
+                    if _try_password(zf, filename, password.encode()):
                         # 암호 발견 → 큐에 넣고 즉시 종료
                         result_queue.put(password)
                         return
-                    except (RuntimeError, zlib.error, zipfile.BadZipFile):
-                        pass  # 오탐 → 다음 시도
     except FileNotFoundError:
         pass  # 워커에서는 조용히 종료 (메인에서 이미 검증됨)
 
 
 def unlock_zip_fast(zip_path=ZIP_PATH, password_file=PASSWORD_FILE):
     """
-    멀티프로세싱 + ZipCrypto 헤더 검사를 결합한 고속 브루트포스 해독기. (보너스 과제)
+    멀티프로세싱으로 탐색 공간을 CPU 코어 수만큼 분할하여 병렬 탐색한다. (보너스 과제)
 
     [속도 개선 원리]
-      1. ZipCrypto 헤더(12바이트)만 검사 → 전체 압축 해제 횟수 1/256로 감소
-      2. 탐색 공간을 CPU 코어 수로 분할하여 병렬 탐색
-      → 단일 프로세스 기본 방식 대비 약 (코어 수 × 10~30)배 빠름
+      CHARSET 첫 번째 문자(36개)를 CPU 코어 수로 분할하여 각 프로세스가
+      독립적으로 담당 범위를 탐색 → 이론상 코어 수배 빠름.
 
     [multiprocessing을 쓰는 이유]
       Python의 GIL(Global Interpreter Lock)로 인해 threading은 CPU 연산을
@@ -348,29 +303,6 @@ def unlock_zip_fast(zip_path=ZIP_PATH, password_file=PASSWORD_FILE):
 
 
 # ---------------------------------------------------------------------------
-# 공통 유틸리티
-# ---------------------------------------------------------------------------
-
-def _save_password(password, password_file):
-    """
-    발견된 암호를 텍스트 파일로 저장한다.
-
-    OSError(권한 없음, 디스크 꽉 참 등) 발생 시 예외처리하여
-    프로그램이 비정상 종료되지 않도록 보호한다.
-
-    Args:
-        password (str): 저장할 암호 문자열.
-        password_file (str): 저장 경로.
-    """
-    try:
-        with open(password_file, 'w', encoding='utf-8') as f:
-            f.write(password)
-        print(f'[+] 암호 저장    : {password_file}')
-    except OSError as e:
-        print(f'[-] 저장 실패    : {e}')
-
-
-# ---------------------------------------------------------------------------
 # 엔트리포인트
 # ---------------------------------------------------------------------------
 
@@ -380,7 +312,7 @@ if __name__ == '__main__':
     # 자식 프로세스가 이 파일을 다시 import하면서 무한 프로세스 생성 오류 발생
     # → 반드시 if __name__ == '__main__': 안에서 실행해야 함
     print('=' * 60)
-    print('  [보너스] 멀티프로세싱 + 헤더 검사 (빠른 버전)')
+    print('  [보너스] 멀티프로세싱 병렬 브루트포스 (빠른 버전)')
     print('=' * 60)
     result = unlock_zip_fast()
 
