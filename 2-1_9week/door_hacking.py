@@ -184,6 +184,7 @@ def _worker(first_chars, zip_data, result_queue, counter, lock):
                     with lock:
                         counter.value += COUNTER_UPDATE_INTERVAL
 
+                # 방금 만든 비밀번호를 바이트(bytes) 형태로 변환해 압축 해제를 시도합니다. 풀린다면 반복문을 멈추고 결과를 출력합니다.
                 if _try_password(zf, filename, password.encode()):
                     with lock:
                         counter.value += local_count % COUNTER_UPDATE_INTERVAL
@@ -313,9 +314,9 @@ if __name__ == '__main__':
     print('=' * 60)
     result = unlock_zip_fast()
 
-    if result is None:
-        print()
-        print('=' * 60)
-        print('  [기본] 단일 프로세스 브루트포스')
-        print('=' * 60)
-        unlock_zip()
+    # if result is None:
+    #     print()
+    #     print('=' * 60)
+    #     print('  [기본] 단일 프로세스 브루트포스')
+    #     print('=' * 60)
+    #     unlock_zip()
