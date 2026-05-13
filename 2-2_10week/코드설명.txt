@@ -1,0 +1,16 @@
+카이사르 암호
+: 알파벳을 n칸 밀어버린다
+
+ex)
+원문:  A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+암호:  D E F G H I J K L M N O P Q R S T U V W X Y Z A B C
+
+원문   →   암호문
+ A    +3    D
+ B    +3    E
+ Z    +3    C  (끝에 닿으면 다시 처음으로)
+
+원문: HELLO
+shift => 3 적용
+암호문: KHOOR
+
