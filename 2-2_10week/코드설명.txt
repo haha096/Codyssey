@@ -14,3 +14,41 @@ ex)
 shift => 3 적용
 암호문: KHOOR
 
+
+수행과제)
+caesar_cipher_decode() 에서 자리수에 따라 암호표가 바뀌게 한다. 자리수는 알파벳 수만큼 반복한다
+
+이 부분은 이러한 알고리즘을 사용함
+# [수행과제 4] 자리수는 알파벳 수(26개)만큼 반복한다
+    # → shift를 1부터 25까지 반복하여 자리수에 따라 암호표가 바뀌게 한다
+    for shift in range(1, 26):
+
+        decoded_text = ""
+
+        for char in target_text:
+
+            # [수행과제 4] 알파벳인 경우에만 암호표 변환을 적용한다
+            if char.isalpha():
+
+                # 컴퓨터는 문자를 숫자로 저장을 한다
+                # 즉 카이사르 암호는 A = 0이라고 기억을 해야 편하지만
+                # 컴퓨터는 A = 65라고 숫자를 기억하기 때문에 미리 사전에 문자의 숫자를 바꿔줌
+                base = ord('A') if char.isupper() else ord('a')
+
+                # 복호화 공식: 현재 문자에서 shift만큼 역방향으로 이동
+                # → % 26 을 사용하여 Z를 넘어가면 A로 순환되게 한다
+                # → 다시 chr()로 문자로 변환하여 decoded_text에 추가한다
+                decoded_char = chr((ord(char) - base - shift) % 26 + base)
+                decoded_text += decoded_char
+
+            else:
+                # [수행과제 4] 알파벳이 아닌 문자(공백, 숫자 등)는 변환 없이 그대로 유지한다
+                decoded_text += char
+
+전체적인 흐름을 보면
+
+1순위로 WORD_DICTIONARY에 나오는 단어가 하나라도 나오면 즉시 정답으로 처리
+2순위 COMMON_ENGLISH_WORD는 자동감지로 a, an, the, is같은 단어 갯수를 세어 카운트 갯수가 가장 많은 shift를 정답으로 판단
+
+shift 11 → "Doctor Han finally discovered..."
+         → the(1) a(2) and(3) of(4) ... → 매칭 20개  ← 가장 많음 → 정답!
