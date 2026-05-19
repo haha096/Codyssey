@@ -6,16 +6,16 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # [수행과제 1] password.txt 파일을 읽어온다
 # =============================================
 try:
-    with open("password2.txt", "r") as f:
+    with open("password.txt", "r") as f:
         password_text = f.read().strip()
     print("암호문:", password_text)
     print()
 
 except FileNotFoundError:
-    print("오류: password2.txt 파일을 찾을 수 없습니다.")
+    print("오류: password.txt 파일을 찾을 수 없습니다.")
     exit()
 except PermissionError:
-    print("오류: password2.txt 파일을 읽을 권한이 없습니다.")
+    print("오류: password.txt 파일을 읽을 권한이 없습니다.")
     exit()
 except Exception as e:
     print(f"파일 읽기 중 오류 발생: {e}")
@@ -174,17 +174,17 @@ detected_shift, detected_text = caesar_cipher_decode(password_text)
 print("=" * 60)
 print()
 
-print(f"🔓 최종 해독 결과 (shift {detected_shift}번): {detected_text}")
+print(f"최종 해독 결과 (shift {detected_shift}번): {detected_text}")
 
 # =============================================
 # 해독된 최종 결과를 result.txt 파일로 저장한다
 # =============================================
 try:
-    with open("result2.txt", "w") as f:
+    with open("result.txt", "w") as f:
         f.write(detected_text)
-    print(f"result2.txt 저장 완료!")
+    print(f"result.txt 저장 완료!")
 
 except PermissionError:
-    print("오류: result2.txt 파일을 저장할 권한이 없습니다.")
+    print("오류: result.txt 파일을 저장할 권한이 없습니다.")
 except Exception as e:
     print(f"파일 저장 중 오류 발생: {e}")
