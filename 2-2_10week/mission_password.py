@@ -8,17 +8,17 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 try:
     with open("password2.txt", "r") as f:
         password_text = f.read().strip()
-    print("📄 암호문:", password_text)
+    print("암호문:", password_text)
     print()
 
 except FileNotFoundError:
-    print("❌ 오류: password2.txt 파일을 찾을 수 없습니다.")
+    print("오류: password2.txt 파일을 찾을 수 없습니다.")
     exit()
 except PermissionError:
-    print("❌ 오류: password2.txt 파일을 읽을 권한이 없습니다.")
+    print("오류: password2.txt 파일을 읽을 권한이 없습니다.")
     exit()
 except Exception as e:
-    print(f"❌ 파일 읽기 중 오류 발생: {e}")
+    print(f"파일 읽기 중 오류 발생: {e}")
     exit()
 
 
@@ -132,7 +132,7 @@ def caesar_cipher_decode(target_text):
 
         if found_word:
             # [수행과제 5] 사전 단어가 발견된 shift의 결과를 출력한다
-            print(f"[shift {shift:2d}] {decoded_text}  ✅ 사전 단어 발견: '{found_word}'")
+            print(f"[shift {shift:2d}] {decoded_text}  사전 단어 발견: '{found_word}'")
             dict_shift = shift
             dict_text = decoded_text
             dict_word = found_word
@@ -156,13 +156,13 @@ def caesar_cipher_decode(target_text):
     # [수행과제 6] 1순위(사전 감지) 결과가 있으면 그것을 반환한다
     if dict_text is not None:
         print()
-        print(f"🔍 [1순위 사전 감지] '{dict_word}' 단어 발견 → shift {dict_shift}번으로 해독 완료")
+        print(f"[1순위 사전 감지] '{dict_word}' 단어 발견 → shift {dict_shift}번으로 해독 완료")
         return dict_shift, dict_text
 
     # [수행과제 6] 사전에서 못 찾은 경우 2순위(단어 매칭) 결과를 반환한다
     else:
         print()
-        print(f"🔍 [2순위 단어 매칭] 사전 단어 없음 → 영어 단어 {best_score}개 매칭된 shift {best_shift}번으로 해독")
+        print(f"[2순위 단어 매칭] 사전 단어 없음 → 영어 단어 {best_score}개 매칭된 shift {best_shift}번으로 해독")
         return best_shift, best_text
 
 
@@ -182,7 +182,7 @@ print(f"🔓 최종 해독 결과 (shift {detected_shift}번): {detected_text}")
 try:
     with open("result2.txt", "w") as f:
         f.write(detected_text)
-    print(f"💾 result2.txt 저장 완료!")
+    print(f"result2.txt 저장 완료!")
 
 except PermissionError:
     print("오류: result2.txt 파일을 저장할 권한이 없습니다.")
