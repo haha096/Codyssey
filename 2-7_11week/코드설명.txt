@@ -1,0 +1,19 @@
+파일 구조)
+실행 디렉토리/
+├── javis.py
+└── records/
+    ├── 20240521-143022.wav
+    └── 20240522-090100.wav
+
+사용 라이브러리)
+라이브러리종류용도os기본 내장폴더 생성, 경로 합성, 파일 목록 조회wave기본 내장녹음 데이터를 WAV 포맷으로 저장datetime기본 내장파일명용 날짜/시간 생성, 날짜 범위 비교pyaudio★ 외부 (허용)마이크 인식, 오디오 스트림 캡처
+
+구조 설계)
+JavisRecorder 클래스 (CapWords 적용)
+
+_ensure_records_dir() — 저장 폴더 자동 생성
+_generate_filename() — YYYYMMDD-HHMMSS.wav 파일명 생성
+list_microphones() — 연결된 마이크 목록 출력
+record_audio(duration) — 실제 녹음 및 WAV 저장
+list_records_by_date_range() — 보너스 과제: 날짜 범위 필터링
+show_records_by_date_range() — 조회 결과 출력
